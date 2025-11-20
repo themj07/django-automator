@@ -53,7 +53,14 @@ Les contributions sont les bienvenues : corrections de bugs, nouvelles fonctio
 
 ---
 
+## Contributeurs
+
+<a href="https://github.com/TON_PSEUDO/TON_REPO/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=TON_PSEUDO/TON_REPO" />
+</a>
+
 ## 📄 Licence
 
 Distribué sous la licence **MIT**.
+
 
