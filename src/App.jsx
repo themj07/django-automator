@@ -8,72 +8,8 @@ import {
 
 // --- CONSTANTES & DONNÉES ---
 
-const SAMPLE_ID = 'sample-demo-file';
 // Liste des balises HTML qui ne se ferment pas (Void Elements)
 const VOID_TAGS = ['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'];
-
-const SAMPLE_CONTENT = `<!-- 
-    Exemple de commentaire sur plusieurs lignes 
-    que le nettoyeur doit supprimer.
--->
-<!-- Mirrored from example.com by HTTrack Website Copier -->
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>Démo Complète Django</title>
-    <!-- TEST STATIC : Le lien CSS doit devenir {% static ... %} -->
-    <link href="/css/style.css" rel="stylesheet">
-</head>
-<body>
-    <header>
-        <img src="img/logo.png" alt="Mon Logo">
-        <nav>
-            <!-- TEST URLS : Les liens .html doivent devenir {% url ... %} -->
-            <a href="index.html">Accueil</a>
-            <a href="subfolder/about.html">À Propos</a>
-        </nav>
-    </header>
-
-    <main>
-        <!-- TEST VARIABLE : Sélectionne "Bienvenue" et utilise l'outil Variable -->
-        <h1>Bienvenue sur mon site</h1>
-
-        <!-- TEST SNIPPETS : Place ton curseur ici et teste les boutons Auth ou Date -->
-        <div class="user-info">
-            <p>Connectez-vous pour voir plus.</p>
-        </div>
-
-        <section class="products">
-            <!-- TEST BOUCLE : Sélectionne la div "card" entière ci-dessous et clique sur "Go" avec Smart Clean activé -->
-            <div class="card item">
-                <img src="img/prod1.jpg" alt="Produit 1">
-                <h3>Produit A</h3>
-                <span>Publié le : 01/01/2025</span>
-            </div>
-            <div class="card item">
-                <img src="img/prod2.jpg" alt="Produit 2">
-                <h3>Produit B</h3>
-            </div>
-            <div class="card item">
-                <img src="img/prod3.jpg" alt="Produit 3">
-                <h3>Produit C</h3>
-            </div>
-        </section>
-
-        <!-- Test Formulaire POST pour CSRF -->
-        <form action="login.html" method="post">
-            <input type="text" name="test">
-            <button>Envoyer</button>
-        </form>
-    </main>
-
-    <footer>
-        <p>&copy; 2025 Demo.</p>
-        <script src="js/main.js"></script>
-    </footer>
-</body>
-</html>`;
 
 // --- ALGORITHME DE DIFF (Simple Line Diff) ---
 
@@ -162,9 +98,11 @@ const DiffViewer = ({ oldCode, newCode }) => {
 
 export default function App() {
   // --- ÉTATS ---
+  // MODIFICATION : Initialisation vide
   const [files, setFiles] = useState([]); 
   const [activeFileId, setActiveFileId] = useState(null);
   const [inputCode, setInputCode] = useState('');
+
   const [outputCode, setOutputCode] = useState('');
   const [copied, setCopied] = useState(false);
   const [editingFileId, setEditingFileId] = useState(null);
@@ -191,17 +129,6 @@ export default function App() {
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // --- INIT ---
-  useEffect(() => {
-    setFiles([{
-      id: SAMPLE_ID,
-      name: 'demo_features.html',
-      content: SAMPLE_CONTENT
-    }]);
-    setActiveFileId(SAMPLE_ID);
-    setInputCode(SAMPLE_CONTENT);
-  }, []);
-
   // --- LOGIQUE FICHIERS ---
   const handleFileUpload = (e) => {
     if (!e.target.files || e.target.files.length === 0) return;
@@ -215,11 +142,7 @@ export default function App() {
     });
 
     Promise.all(newFilesPromises).then(loadedFiles => {
-      setFiles(prev => {
-        const hasSampleOnly = prev.length === 1 && prev[0].id === SAMPLE_ID;
-        const currentFiles = hasSampleOnly ? [] : prev;
-        return [...currentFiles, ...loadedFiles];
-      });
+      setFiles(prev => [...prev, ...loadedFiles]);
       if (loadedFiles.length > 0) {
         setActiveFileId(loadedFiles[0].id);
         setInputCode(loadedFiles[0].content);
@@ -517,12 +440,17 @@ export default function App() {
           </label>
         </div>
         <div className="flex-1 overflow-y-auto p-2 space-y-2 custom-scrollbar">
+          {files.length === 0 && (
+             <div className="flex flex-col items-center justify-center h-40 opacity-50">
+                <FileCode size={32} className="text-slate-600 mb-2"/>
+                <p className="text-xs text-slate-500 text-center px-4">Aucun fichier chargé.<br/>Utilisez le bouton ci-dessus.</p>
+             </div>
+          )}
           {files.map(file => (
             <div key={file.id} onClick={() => !editingFileId && selectFile(file.id)} className={`group relative flex flex-col p-2 rounded-md cursor-pointer transition-all border ${extractionMode ? (selectedForExtraction.includes(file.id) ? 'bg-purple-900/40 border-purple-500 text-white' : 'bg-slate-800 border-transparent opacity-60') : (activeFileId === file.id ? 'bg-green-900/20 border-green-600/50 text-green-400' : 'bg-slate-800/50 border-transparent hover:bg-slate-800 text-slate-300')}`}>
                 <div className="flex justify-between items-center w-full">
                     <div className="flex items-center gap-2 overflow-hidden flex-1">
                     {extractionMode && selectedForExtraction.includes(file.id) && <CheckCircle size={12} className="text-purple-400 flex-shrink-0"/>}
-                    {file.id === SAMPLE_ID && <div className="w-2 h-2 rounded-full bg-yellow-500 mr-1 animate-pulse" title="Exemple"></div>}
                     {editingFileId === file.id ? (
                         <input type="text" value={file.name} onClick={(e) => e.stopPropagation()} onChange={(e) => updateFileName(e, file.id)} onBlur={() => setEditingFileId(null)} onKeyDown={handleNameKeyDown} className="bg-slate-950 text-white text-xs px-1 py-0.5 rounded border border-blue-500 w-full outline-none" autoFocus />
                     ) : (<span className="text-xs font-mono truncate" title={file.name}>{file.name}</span>)}
