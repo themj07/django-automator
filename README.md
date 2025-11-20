@@ -28,15 +28,6 @@ Un outil Open Source pour les développeurs Django permettant de convertir **ins
 
 ---
 
-## 🛠 Technologies Utilisées
-
-- **React** : Pour une interface utilisateur dynamique et réactive.
-- **Tailwind CSS** : Pour un design moderne et adaptatif.
-- **Algorithme LCS** : Moteur de comparaison de différences (Diff View).
-- **Regex Avancées** : Pour le parsing et le nettoyage du code HTML.
-
----
-
 ## Installation locale
 
 ```bash
@@ -65,3 +56,4 @@ Les contributions sont les bienvenues : corrections de bugs, nouvelles fonctio
 ## 📄 Licence
 
 Distribué sous la licence **MIT**.
+
