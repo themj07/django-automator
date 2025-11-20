@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://ton-nom-utilisateur.github.io/django-automator",
+  "homepage": "https://themj07.github.io/django-automator",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
