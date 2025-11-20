@@ -60,13 +60,13 @@ Les contributions sont les bienvenues : corrections de bugs, nouvelles fonctio
 </a>
 
 <a href="https://github.com/Yann-26/django-automator/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=Yann-26/django-automator" />
+  <img src="[https://contrib.rocks/image?repo=Yann-26/django-automator](https://avatars.githubusercontent.com/u/102493133?v=4)" />
 </a>
-
 
 ## 📄 Licence
 
 Distribué sous la licence **MIT**.
+
 
 
 
