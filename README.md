@@ -63,9 +63,14 @@ Les contributions sont les bienvenues : corrections de bugs, nouvelles fonctio
   <img src="https://contrib.rocks/image?repo=Yann-26/Yann-26" />
 </a>
 
+<a href="https://github.com/yvescape /Odoo_agrinova/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=yvescape/Odoo_agrinova" />
+</a>
+
 ## 📄 Licence
 
 Distribué sous la licence **MIT**.
+
 
 
 
