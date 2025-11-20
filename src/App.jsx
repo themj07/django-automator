@@ -8,20 +8,16 @@ import {
 
 // --- CONSTANTES & DONNÉES ---
 
+const SAMPLE_ID = 'sample-demo-file';
 // Liste des balises HTML qui ne se ferment pas (Void Elements)
 const VOID_TAGS = ['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'];
 
 // --- ALGORITHME DE DIFF (Simple Line Diff) ---
-
-// Calcule la différence ligne par ligne entre deux textes
 const computeDiff = (oldText, newText) => {
   if (!oldText) oldText = "";
   if (!newText) newText = "";
-  
   const oldLines = oldText.split('\n');
   const newLines = newText.split('\n');
-  
-  // Matrice LCS (Longest Common Subsequence)
   const matrix = Array(oldLines.length + 1).fill(null).map(() => Array(newLines.length + 1).fill(0));
   
   for (let i = 1; i <= oldLines.length; i++) {
@@ -34,7 +30,6 @@ const computeDiff = (oldText, newText) => {
     }
   }
   
-  // Backtracking pour reconstruire le diff
   let i = oldLines.length;
   let j = newLines.length;
   const diffs = [];
@@ -42,8 +37,7 @@ const computeDiff = (oldText, newText) => {
   while (i > 0 || j > 0) {
     if (i > 0 && j > 0 && oldLines[i - 1] === newLines[j - 1]) {
       diffs.unshift({ type: 'same', value: oldLines[i - 1], oldLine: i, newLine: j });
-      i--;
-      j--;
+      i--; j--;
     } else if (j > 0 && (i === 0 || matrix[i][j - 1] >= matrix[i - 1][j])) {
       diffs.unshift({ type: 'add', value: newLines[j - 1], newLine: j });
       j--;
@@ -52,41 +46,19 @@ const computeDiff = (oldText, newText) => {
       i--;
     }
   }
-  
   return diffs;
 };
 
 // --- COMPOSANT DIFF VIEWER ---
-
 const DiffViewer = ({ oldCode, newCode }) => {
   const diffs = useMemo(() => computeDiff(oldCode, newCode), [oldCode, newCode]);
-  
   return (
     <div className="flex-1 overflow-auto custom-scrollbar bg-slate-950 p-4 font-mono text-xs leading-5">
       {diffs.map((part, index) => (
-        <div 
-          key={index} 
-          className={`flex ${
-            part.type === 'add' ? 'bg-green-900/30 text-green-100' : 
-            part.type === 'remove' ? 'bg-red-900/30 text-red-300 opacity-70' : 
-            'text-slate-400'
-          } hover:bg-slate-800/50 transition-colors`}
-        >
-           {/* Numéros de ligne */}
-           <div className="w-8 text-right select-none pr-2 text-slate-600 border-r border-slate-800 mr-2 flex-shrink-0">
-             {part.oldLine || ''}
-           </div>
-           <div className="w-8 text-right select-none pr-2 text-slate-600 border-r border-slate-800 mr-2 flex-shrink-0">
-             {part.newLine || ''}
-           </div>
-           
-           {/* Contenu */}
-           <div className="whitespace-pre-wrap break-all flex-1">
-             <span className="select-none mr-2 font-bold w-4 inline-block text-center">
-               {part.type === 'add' ? '+' : part.type === 'remove' ? '-' : ' '}
-             </span>
-             {part.value}
-           </div>
+        <div key={index} className={`flex ${part.type === 'add' ? 'bg-green-900/30 text-green-100' : part.type === 'remove' ? 'bg-red-900/30 text-red-300 opacity-70' : 'text-slate-400'} hover:bg-slate-800/50 transition-colors`}>
+           <div className="w-8 text-right select-none pr-2 text-slate-600 border-r border-slate-800 mr-2 flex-shrink-0">{part.oldLine || ''}</div>
+           <div className="w-8 text-right select-none pr-2 text-slate-600 border-r border-slate-800 mr-2 flex-shrink-0">{part.newLine || ''}</div>
+           <div className="whitespace-pre-wrap break-all flex-1"><span className="select-none mr-2 font-bold w-4 inline-block text-center">{part.type === 'add' ? '+' : part.type === 'remove' ? '-' : ' '}</span>{part.value}</div>
         </div>
       ))}
       {diffs.length === 0 && <div className="text-slate-500 italic text-center mt-10">Aucune différence ou fichiers vides.</div>}
@@ -98,21 +70,15 @@ const DiffViewer = ({ oldCode, newCode }) => {
 
 export default function App() {
   // --- ÉTATS ---
-  // MODIFICATION : Initialisation vide
   const [files, setFiles] = useState([]); 
   const [activeFileId, setActiveFileId] = useState(null);
   const [inputCode, setInputCode] = useState('');
-
   const [outputCode, setOutputCode] = useState('');
   const [copied, setCopied] = useState(false);
   const [editingFileId, setEditingFileId] = useState(null);
   const [extractionMode, setExtractionMode] = useState(false);
   const [selectedForExtraction, setSelectedForExtraction] = useState([]);
-  
-  // Mode Vue : 'split' (Editeur) ou 'diff' (Comparaison)
   const [viewMode, setViewMode] = useState('split'); 
-
-  // Config Outils
   const [loopConfig, setLoopConfig] = useState({ varName: 'item', listName: 'items', smartClean: true });
   const [varName, setVarName] = useState('variable');
   
@@ -129,7 +95,7 @@ export default function App() {
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // --- LOGIQUE FICHIERS ---
+  // --- GESTION FICHIERS ---
   const handleFileUpload = (e) => {
     if (!e.target.files || e.target.files.length === 0) return;
     const uploadedFiles = Array.from(e.target.files);
@@ -140,7 +106,6 @@ export default function App() {
         reader.readAsText(file);
       });
     });
-
     Promise.all(newFilesPromises).then(loadedFiles => {
       setFiles(prev => [...prev, ...loadedFiles]);
       if (loadedFiles.length > 0) {
@@ -155,9 +120,7 @@ export default function App() {
     const newName = e.target.value;
     setFiles(prev => prev.map(f => f.id === id ? { ...f, name: newName } : f));
   };
-
   const handleNameKeyDown = (e) => { if (e.key === 'Enter') setEditingFileId(null); };
-
   const downloadFile = (e, file) => {
     e.stopPropagation();
     const contentToDownload = (activeFileId === file.id) ? outputCode : file.content;
@@ -171,7 +134,6 @@ export default function App() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
-
   const downloadAll = () => {
     files.forEach((file, index) => {
       setTimeout(() => {
@@ -186,7 +148,6 @@ export default function App() {
       }, index * 500);
     });
   };
-
   const selectFile = (id) => {
     if (extractionMode) {
       if (selectedForExtraction.includes(id)) setSelectedForExtraction(prev => prev.filter(fid => fid !== id));
@@ -200,7 +161,6 @@ export default function App() {
       setInputCode(file.content);
     }
   };
-
   const removeFile = (e, id) => {
     e.stopPropagation();
     const newFiles = files.filter(f => f.id !== id);
@@ -225,14 +185,11 @@ export default function App() {
     if (cleanPath.startsWith(cleanPrefix + '/')) return cleanPath;
     return `${cleanPrefix}/${cleanPath}`;
   };
-
   const processDjangoCode = (code, config) => {
     if (!code) return '';
     let newCode = code;
-    
     if (config.cleanComments) newCode = newCode.replace(/<!--[\s\S]*?-->/g, ''); 
     if (config.injectCsrf) newCode = newCode.replace(/(<form\s+[^>]*method=["']?POST["']?[^>]*>)/gi, '$1\n  {% csrf_token %}');
-    
     if (config.convertUrls) {
       newCode = newCode.replace(/href=["']([\w-./]+\.html)["']/g, (match, p1) => {
         const parts = p1.split('/');
@@ -241,7 +198,6 @@ export default function App() {
         return `href="{% url '${urlName}' %}"`;
       });
     }
-    
     const staticExtensions = ['css', 'js', 'jpg', 'jpeg', 'png', 'gif', 'svg', 'ico', 'woff', 'woff2', 'ttf', 'eot', 'mp4', 'webm', 'webp'];
     if (config.convertStatic) {
       const staticRegex = new RegExp(`(href|src)=["'](?!https?:|#|{|mailto:|tel:|javascript:)([^"']+\\.(${staticExtensions.join('|')}))["']`, 'gi');
@@ -262,32 +218,26 @@ export default function App() {
     if (selectedForExtraction.length !== 2) return;
     const file1 = files.find(f => f.id === selectedForExtraction[0]);
     const file2 = files.find(f => f.id === selectedForExtraction[1]);
-    
     const lines1 = file1.content.split('\n');
     const lines2 = file2.content.split('\n');
-    
     let i = 0;
     while (i < lines1.length && i < lines2.length && lines1[i].trim() === lines2[i].trim()) { i++; }
     let j1 = lines1.length - 1;
     let j2 = lines2.length - 1;
     while (j1 >= 0 && j2 >= 0 && lines1[j1].trim() === lines2[j2].trim()) { j1--; j2--; }
     if (i > j1) i = j1; 
-
     const headerPart = lines1.slice(0, i).join('\n');
     const footerPart = lines1.slice(j1 + 1).join('\n');
     const unique1 = lines1.slice(i, j1 + 1).join('\n');
     const unique2 = lines2.slice(i, j2 + 1).join('\n');
-    
     const conf = { ...options, addExtends: false };
     const procHeader = processDjangoCode(headerPart, conf);
     const procFooter = processDjangoCode(footerPart, conf);
     const procU1 = processDjangoCode(unique1, conf);
     const procU2 = processDjangoCode(unique2, conf);
-    
     const baseContent = `{% load static %}\n${procHeader}\n    {% block content %}\n    {% endblock content %}\n${procFooter}`;
     const child1Content = `{% extends 'auto_base.html' %}\n{% load static %}\n\n{% block content %}\n${procU1}\n{% endblock content %}`;
     const child2Content = `{% extends 'auto_base.html' %}\n{% load static %}\n\n{% block content %}\n${procU2}\n{% endblock content %}`;
-    
     const newFiles = [
       { id: Date.now() + 1, name: 'auto_base.html', content: baseContent },
       { id: Date.now() + 2, name: file1.name.replace('.html', '_child.html'), content: child1Content },
@@ -318,23 +268,33 @@ export default function App() {
   };
   useEffect(() => { convertToDjango(); }, [inputCode, options]);
 
-  // --- TOOLS UTILS ---
+  // --- TOOLS UTILS (SMART CLEAN FIX - Version 2.0) ---
+
   const findClosingTagIndex = (str, startIndex, tagName) => {
     if (VOID_TAGS.includes(tagName.toLowerCase())) return startIndex; 
+    
     let depth = 0;
-    const regex = new RegExp(`<\/?${tagName}(\\s|>)`, 'gi');
-    regex.lastIndex = startIndex;
+    
+    // Utilisation de 'ig' pour itérer insensible à la casse
+    const tagRegex = new RegExp(`<(\/?)(${tagName})(\\s|>)`, 'ig');
+    tagRegex.lastIndex = startIndex;
+    
     let match;
-    while ((match = regex.exec(str)) !== null) {
-      if (match[0].toLowerCase().startsWith(`<${tagName}`)) depth++;
-      else {
-        if (depth === 0) return match.index + match[0].length;
-        depth--;
-      }
+    while ((match = tagRegex.exec(str)) !== null) {
+        const isClosing = match[1] === '/';
+        if (!isClosing) {
+            depth++;
+        } else {
+            if (depth === 0) {
+                // On a trouvé le tag fermant correspondant
+                // On doit trouver la fin du tag fermant (le '>')
+                const closingTagStart = match.index;
+                const closingTagEnd = str.indexOf('>', closingTagStart);
+                return closingTagEnd !== -1 ? closingTagEnd + 1 : str.length;
+            }
+            depth--;
+        }
     }
-    const simpleClose = new RegExp(`</${tagName}>`, 'i');
-    const matchClose = str.substring(startIndex).match(simpleClose);
-    if (matchClose) return startIndex + matchClose.index + matchClose[0].length;
     return -1;
   };
 
@@ -363,37 +323,102 @@ export default function App() {
     let textAfter = inputCode.substring(end);
 
     if (loopConfig.smartClean) {
-      const tagMatch = selectedText.match(/^<([a-zA-Z0-9]+)(\s+[^>]*)?>/);
+      // 1. Identifier le tag racine de la sélection
+      // On cherche <tagName ...> au début de la sélection, en ignorant les espaces
+      const trimmedSelection = selectedText.trim();
+      const tagMatch = trimmedSelection.match(/^<([a-zA-Z0-9-]+)(\s+[^>]*)?>/);
+      
       if (tagMatch) {
-        const tagName = tagMatch[1];
+        const tagName = tagMatch[1]; // ex: "div"
+        
         if (!VOID_TAGS.includes(tagName.toLowerCase())) {
-            const classMatch = selectedText.match(/class=["']([^"']*)["']/);
-            const className = classMatch ? classMatch[1] : null;
+            // 2. Construire une regex pour trouver les frères
+            // On extrait les classes pour cibler précisément
+            const classMatch = trimmedSelection.match(/class=["']([^"']*)["']/);
             let siblingRegex;
-            if (className) {
-              const safeClass = className.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-              siblingRegex = new RegExp(`^\\s*<${tagName}[^>]*class=["'][^"']*${safeClass}[^"']*["'][^>]*>`, 'i');
+            
+            if (classMatch) {
+               // On cherche un élément qui a la même balise ET (idéalement) les mêmes classes
+               // Astuce: On cherche <tag ... class="...maClasse..." ...>
+               // On escape les caractères spéciaux des classes
+               const classes = classMatch[1].trim().split(/\s+/).filter(c => c.length > 0);
+               
+               if (classes.length > 0) {
+                   // On construit une regex qui cherche la balise ouvrante contenant au moins une des classes principales
+                   // Pour simplifier et être robuste, on cherche juste la correspondance exacte de la structure de classe si possible,
+                   // ou au moins la présence de la classe principale.
+                   const firstClass = classes[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                   siblingRegex = new RegExp(`^\\s*<${tagName}[^>]*class=["'][^"']*${firstClass}[^"']*["'][^>]*>`, 'i');
+               } else {
+                   siblingRegex = new RegExp(`^\\s*<${tagName}(\\s|>)`, 'i');
+               }
             } else {
-              siblingRegex = new RegExp(`^\\s*<${tagName}(\\s|>)`, 'i');
+               // Pas de classe, on cherche juste le même tag
+               siblingRegex = new RegExp(`^\\s*<${tagName}(\\s|>)`, 'i');
             }
-            while (true) {
-              const match = textAfter.match(siblingRegex);
-              if (!match) break;
-              const siblingContentStart = match.index + match[0].length;
-              const closingIndexRelative = findClosingTagIndex(textAfter, siblingContentStart, tagName);
-              if (closingIndexRelative !== -1) {
-                 let afterTagIndex = closingIndexRelative;
-                 if (textAfter[afterTagIndex - 1] !== '>') {
-                     const closingBracket = textAfter.indexOf('>', afterTagIndex);
-                     if (closingBracket !== -1) afterTagIndex = closingBracket + 1;
-                 }
-                 textAfter = textAfter.substring(afterTagIndex);
-                 if (match.index === 0 && afterTagIndex === 0) break; 
-              } else break;
+
+            // 3. Boucle de suppression des frères
+            let maxIterations = 200; // Sécurité
+            while (maxIterations > 0) {
+              maxIterations--;
+              
+              // On ignore les commentaires et espaces au début de textAfter
+              // C'est crucial car il y a souvent <!-- PRODUIT 2 --> entre les blocs
+              let skipOffset = 0;
+              
+              // Regex pour manger les espaces et commentaires successifs
+              // On cherche le premier caractère qui n'est ni un espace ni un commentaire
+              let foundNextElement = false;
+              let tempText = textAfter;
+              let totalSkip = 0;
+              
+              while(true) {
+                  const spaceMatch = tempText.match(/^\s+/);
+                  if (spaceMatch) {
+                      const len = spaceMatch[0].length;
+                      totalSkip += len;
+                      tempText = tempText.substring(len);
+                      continue;
+                  }
+                  
+                  const commentMatch = tempText.match(/^<!--[\s\S]*?-->/);
+                  if (commentMatch) {
+                      const len = commentMatch[0].length;
+                      totalSkip += len;
+                      tempText = tempText.substring(len);
+                      continue;
+                  }
+                  
+                  // Si on arrive ici, c'est qu'on est sur du vrai contenu (ou fin de chaîne)
+                  break;
+              }
+              
+              // Vérifier si ce "vrai contenu" correspond à notre frère cible
+              const match = tempText.match(siblingRegex);
+              
+              if (!match || match.index !== 0) {
+                  // Ce n'est pas le frère qu'on cherche, on arrête.
+                  break; 
+              }
+              
+              // C'est un frère ! On doit maintenant trouver sa fin pour le supprimer.
+              // `totalSkip` est l'index où commence le frère dans `textAfter`
+              const siblingStartIdx = totalSkip;
+              const tagOpenEndIdx = siblingStartIdx + match[0].length;
+              
+              const closingIndex = findClosingTagIndex(textAfter, tagOpenEndIdx, tagName);
+              
+              if (closingIndex !== -1) {
+                 // On supprime de 0 jusqu'à la fin du frère trouvé
+                 textAfter = textAfter.substring(closingIndex);
+              } else {
+                 break; // Problème de structure, on arrête
+              }
             }
         }
       }
     }
+    
     const loopBlock = `\n{% for ${loopConfig.varName} in ${loopConfig.listName} %}\n${selectedText}\n{% endfor %}\n`;
     const newCode = inputCode.substring(0, start) + loopBlock + textAfter;
     setInputCode(newCode);
@@ -479,12 +504,8 @@ export default function App() {
           <div className="flex items-center justify-between mb-3">
             <h1 className="text-lg font-bold flex items-center gap-2"><span className="bg-gradient-to-r from-green-600 to-emerald-500 px-2 py-0.5 rounded text-sm text-white">Django</span> Automator</h1>
             <div className="flex gap-2">
-                <button 
-                  onClick={() => setViewMode(viewMode === 'split' ? 'diff' : 'split')} 
-                  className={`text-[10px] font-bold px-3 py-1.5 rounded border transition-colors flex items-center gap-1.5 ${viewMode === 'diff' ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'}`}
-                >
-                  {viewMode === 'split' ? <FileDiff size={12}/> : <Code size={12}/>}
-                  {viewMode === 'split' ? 'VOIR DIFF' : 'MODE ÉDITEUR'}
+                <button onClick={() => setViewMode(viewMode === 'split' ? 'diff' : 'split')} className={`text-[10px] font-bold px-3 py-1.5 rounded border transition-colors flex items-center gap-1.5 ${viewMode === 'diff' ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'}`}>
+                  {viewMode === 'split' ? <FileDiff size={12}/> : <Code size={12}/>} {viewMode === 'split' ? 'VOIR DIFF' : 'MODE ÉDITEUR'}
                 </button>
                 <button onClick={() => { setInputCode(''); setFiles([]); setActiveFileId(null); }} className="text-[10px] font-bold text-slate-500 hover:text-red-400 flex items-center gap-1"><RefreshCw size={12} /> RESET</button>
             </div>
