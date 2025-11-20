@@ -55,12 +55,18 @@ Les contributions sont les bienvenues : corrections de bugs, nouvelles fonctio
 
 ## Contributeurs
 
-<a href="https://github.com/TON_PSEUDO/TON_REPO/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=TON_PSEUDO/TON_REPO" />
+<a href="https://github.com/themj07/django-automator/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=themj07/django-automator" />
 </a>
+
+<a href="https://github.com/Yann-26/django-automator/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Yann-26/django-automator" />
+</a>
+
 
 ## 📄 Licence
 
 Distribué sous la licence **MIT**.
+
 
 
