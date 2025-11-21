@@ -37,39 +37,8 @@ npm install
 npm run dev
 ```
 
----
 
-## Contribution & Open Source
 
-Ce projet est **Open Source** et gratuit pour la communauté.
-
-Les contributions sont les bienvenues : corrections de bugs, nouvelles fonctionnalités (support Jinja2, autres frameworks), améliorations UI, etc.
-
-1. **Forkez** le projet
-2. **Créez votre branche** (`git checkout -b feature/AmazingFeature`)
-3. **Commitez** vos changements (`git commit -m 'Add some AmazingFeature'`)
-4. **Poussez** la branche (`git push origin feature/AmazingFeature`)
-5. **Ouvrez une Pull Request**
-
----
-
-## Contributeurs
-
-<a href="https://github.com/themj07/django-automator/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=themj07/django-automator" />
-</a>
-
-<a href="https://github.com/Yann-26/Yann-26/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=Yann-26/Yann-26" />
-</a>
-
-<a href="https://github.com/yvescape /Odoo_agrinova/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=yvescape/Odoo_agrinova" />
-</a>
-
-## 📄 Licence
-
-Distribué sous la licence **MIT**.
 
 
 
