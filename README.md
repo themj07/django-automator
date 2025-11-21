@@ -1,6 +1,6 @@
 # Django Template Automator
 
-Un outil Open Source pour les développeurs Django permettant de convertir **instantanément** des templates HTML statiques en gabarits Django prêts à l'emploi.
+Un outil les développeurs Django permettant de gagner du temps.
 
 🔗 [Voir l'application en ligne](https://themj07.github.io/django-automator/)
 
@@ -31,21 +31,8 @@ Un outil Open Source pour les développeurs Django permettant de convertir **ins
 ## Installation locale
 
 ```bash
-git clone https://github.com/votre-nom/django-automator.git
+git clone https://github.com/themj07/django-automator.git
 cd django-automator
 npm install
 npm run dev
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
