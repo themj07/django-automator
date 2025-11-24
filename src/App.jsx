@@ -1,8 +1,10 @@
+// src/App.jsx
 import React, { useState } from 'react';
 import GabaritsTool from './apps/GabaritsTool';
+import AdminModelsTool from './apps/admin/AdminModelsTool'; // ✅ décommenter + bon chemin
 
 export default function App() {
-  const [activeTool, setActiveTool] = useState('gabarits');
+  const [activeTool, setActiveTool] = useState('gabarits'); // 'gabarits' | 'admin' | 'models' | 'forms'
 
   const tabButtonClass = (id) =>
     `px-3 py-1 rounded-full text-[11px] font-semibold transition-colors ${
@@ -33,6 +35,12 @@ export default function App() {
               Gabarits
             </button>
             <button
+              className={tabButtonClass('admin')}
+              onClick={() => setActiveTool('admin')}
+            >
+              Admin
+            </button>
+            <button
               className={tabButtonClass('models')}
               onClick={() => setActiveTool('models')}
             >
@@ -52,31 +60,16 @@ export default function App() {
       <main className="flex-1 flex">
         {activeTool === 'gabarits' && <GabaritsTool />}
 
+        {activeTool === 'admin' && <AdminModelsTool />}{/* ✅ ajouter ça */}
+
         {activeTool === 'models' && (
-          <Placeholder label="Générateur de models depuis des views" />
+          <Placeholder label="Générateur de models depuis des views (à venir)" />
         )}
 
         {activeTool === 'forms' && (
-          <Placeholder label="Générateur de forms / autres outils" />
+          <Placeholder label="Générateur de forms / autres outils (à venir)" />
         )}
       </main>
-    </div>
-  );
-}
-
-function Placeholder({ label }) {
-  return (
-    <div className="flex-1 flex items-center justify-center bg-slate-950">
-      <div className="max-w-md text-center text-sm text-slate-300 px-4">
-        <h2 className="text-lg font-semibold mb-2">{label}</h2>
-        <p className="mb-3 text-slate-400">
-          Cet onglet est prêt pour accueillir ton futur outil.
-        </p>
-        <p className="text-xs text-slate-500">
-          Pour l’instant, seul l’onglet <strong>Gabarits</strong> est
-          fonctionnel.
-        </p>
-      </div>
     </div>
   );
 }

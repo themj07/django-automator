@@ -1,42 +1,25 @@
 // src/apps/GabaritsTool.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  Copy,
-  Code,
-  FileDiff,
-  RefreshCw,
-  Settings,
-  Link as LinkIcon,
-  CheckCircle,
-  Undo2,
-  Redo2,
-} from 'lucide-react';
+import { Link as LinkIcon, Code, Settings } from 'lucide-react';
 
-import DiffViewer from '../components/DiffViewer';
 import FileExplorer from '../components/FileExplorer';
 import Toolbox from '../components/Toolbox';
+import CodeToolLayout from '../components/CodeToolLayout';
 
 import { processDjangoCode } from '../utils/djangoProcessor';
 import { VOID_TAGS, findClosingTagIndex } from '../utils/htmlHelpers';
+import useUndoRedo from '../utils/useUndoRedo';
 
 export default function GabaritsTool() {
-  // --- ÉTATS ---
+  // --- ÉTATS FICHIERS ---
   const [files, setFiles] = useState([]);
   const [activeFileId, setActiveFileId] = useState(null);
+
+  // --- CODE INPUT / OUTPUT ---
   const [inputCode, setInputCode] = useState('');
   const [outputCode, setOutputCode] = useState('');
-  const [copied, setCopied] = useState(false);
-  const [editingFileId, setEditingFileId] = useState(null);
-  const [extractionMode, setExtractionMode] = useState(false);
-  const [selectedForExtraction, setSelectedForExtraction] = useState([]);
-  const [viewMode, setViewMode] = useState('split');
-  const [loopConfig, setLoopConfig] = useState({
-    varName: 'item',
-    listName: 'items',
-    smartClean: true,
-  });
-  const [varName, setVarName] = useState('variable');
 
+  // --- OPTIONS DJANGO ---
   const [options, setOptions] = useState({
     convertStatic: true,
     convertUrls: true,
@@ -47,40 +30,37 @@ export default function GabaritsTool() {
     staticPrefix: 'assets',
   });
 
-  // Historique pour UNDO / REDO
-  const [undoStack, setUndoStack] = useState([]);
-  const [redoStack, setRedoStack] = useState([]);
+  // --- AUTRES ÉTATS SPÉCIFIQUES GABARITS ---
+  const [editingFileId, setEditingFileId] = useState(null);
+  const [extractionMode, setExtractionMode] = useState(false);
+  const [selectedForExtraction, setSelectedForExtraction] = useState([]);
+  const [loopConfig, setLoopConfig] = useState({
+    varName: 'item',
+    listName: 'items',
+    smartClean: true,
+  });
+  const [varName, setVarName] = useState('variable');
 
   const inputRef = useRef(null);
 
-  // --- HISTORIQUE ---
-
-  const pushHistory = () => {
-    setUndoStack((prev) => [...prev, inputCode]);
-    setRedoStack([]);
-  };
-
-  const handleUndo = () => {
-    if (undoStack.length === 0) return;
-    const previous = undoStack[undoStack.length - 1];
-    setUndoStack((prev) => prev.slice(0, -1));
-    setRedoStack((prev) => [...prev, inputCode]);
-    setInputCode(previous);
-  };
-
-  const handleRedo = () => {
-    if (redoStack.length === 0) return;
-    const next = redoStack[redoStack.length - 1];
-    setRedoStack((prev) => prev.slice(0, -1));
-    setUndoStack((prev) => [...prev, inputCode]);
-    setInputCode(next);
-  };
+  // --- HISTORIQUE UNDO/REDO (générique via hook) ---
+  const {
+    undoStack,
+    redoStack,
+    canUndo,
+    canRedo,
+    pushHistory,
+    undo: handleUndo,
+    redo: handleRedo,
+    resetHistory,
+  } = useUndoRedo(inputCode, setInputCode);
 
   // --- GESTION FICHIERS ---
 
   const handleFileUpload = (e) => {
     if (!e.target.files || e.target.files.length === 0) return;
     const uploadedFiles = Array.from(e.target.files);
+
     const newFilesPromises = uploadedFiles.map((file) => {
       return new Promise((resolve) => {
         const reader = new FileReader();
@@ -99,8 +79,7 @@ export default function GabaritsTool() {
       if (loadedFiles.length > 0) {
         setActiveFileId(loadedFiles[0].id);
         setInputCode(loadedFiles[0].content);
-        setUndoStack([]);
-        setRedoStack([]);
+        resetHistory();
       }
     });
   };
@@ -168,8 +147,7 @@ export default function GabaritsTool() {
     if (file) {
       setActiveFileId(id);
       setInputCode(file.content);
-      setUndoStack([]);
-      setRedoStack([]);
+      resetHistory();
     }
   };
 
@@ -186,12 +164,11 @@ export default function GabaritsTool() {
         setActiveFileId(null);
         setInputCode('');
       }
-      setUndoStack([]);
-      setRedoStack([]);
+      resetHistory();
     }
   };
 
-  // --- EXTRACTION BASE/ENFANTS ---
+  // --- EXTRACTION BASE / ENFANTS (inchangée, juste déplacée) ---
 
   const generateBaseFromSelection = () => {
     if (selectedForExtraction.length !== 2) return;
@@ -212,11 +189,7 @@ export default function GabaritsTool() {
     }
     let j1 = lines1.length - 1;
     let j2 = lines2.length - 1;
-    while (
-      j1 >= 0 &&
-      j2 >= 0 &&
-      lines1[j1].trim() === lines2[j2].trim()
-    ) {
+    while (j1 >= 0 && j2 >= 0 && lines1[j1].trim() === lines2[j2].trim()) {
       j1--;
       j2--;
     }
@@ -260,11 +233,10 @@ export default function GabaritsTool() {
     setSelectedForExtraction([]);
     setActiveFileId(newFiles[0].id);
     setInputCode(newFiles[0].content);
-    setUndoStack([]);
-    setRedoStack([]);
+    resetHistory();
   };
 
-  // --- DJANGO PROCESS : ajoute {% load static %} même sans extends ---
+  // --- CONVERSION DJANGO (identique, mais sortie dans outputCode) ---
 
   const convertToDjango = () => {
     let finalCode = processDjangoCode(inputCode, options);
@@ -299,9 +271,10 @@ export default function GabaritsTool() {
 
   useEffect(() => {
     convertToDjango();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inputCode, options]);
 
-  // --- INSERTION TEXTE / OUTILS ---
+  // --- INSERTION DE TEXTE POUR TOOLBOX ---
 
   const insertTextAtSelection = (before, after = '', replace = false) => {
     const textarea = inputRef.current;
@@ -319,9 +292,7 @@ export default function GabaritsTool() {
       : `${before}${selectedText}${after}`;
 
     const newCode =
-      inputCode.substring(0, start) +
-      newText +
-      inputCode.substring(end);
+      inputCode.substring(0, start) + newText + inputCode.substring(end);
 
     setInputCode(newCode);
 
@@ -447,8 +418,7 @@ export default function GabaritsTool() {
       selectedText +
       `\n{% endfor %}\n`;
 
-    const newCode =
-      inputCode.substring(0, start) + loopBlock + textAfter;
+    const newCode = inputCode.substring(0, start) + loopBlock + textAfter;
     setInputCode(newCode);
 
     const caretPos = start;
@@ -472,276 +442,192 @@ export default function GabaritsTool() {
     }
   };
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(outputCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   const handleResetAll = () => {
     setInputCode('');
     setFiles([]);
     setActiveFileId(null);
-    setUndoStack([]);
-    setRedoStack([]);
+    resetHistory();
   };
 
-  // --- RENDER ---
+  // --- CONTENU DE LA BARRE D’OPTIONS SPÉCIFIQUE GABARITS ---
+
+  const optionsBar = (
+    <>
+      <div className="lg:col-span-2 flex flex-col gap-1">
+        <label className="font-semibold text-slate-400">Static</label>
+        <input
+          type="text"
+          value={options.staticPrefix}
+          onChange={(e) =>
+            setOptions({
+              ...options,
+              staticPrefix: e.target.value,
+            })
+          }
+          className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-green-400 outline-none"
+        />
+      </div>
+      <div
+        className={`lg:col-span-3 flex flex-col gap-1 transition-opacity ${
+          !options.addExtends && 'opacity-30'
+        }`}
+      >
+        <label className="font-semibold text-slate-400">Base</label>
+        <input
+          type="text"
+          value={options.baseTemplateName}
+          onChange={(e) =>
+            setOptions({
+              ...options,
+              baseTemplateName: e.target.value,
+            })
+          }
+          className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-blue-400 outline-none"
+        />
+      </div>
+      <div className="lg:col-span-7 flex flex-wrap items-end gap-x-4 gap-y-2 pb-1">
+        <label className="flex items-center gap-1.5 cursor-pointer text-slate-300 hover:text-white">
+          <input
+            type="checkbox"
+            checked={options.convertUrls}
+            onChange={(e) =>
+              setOptions({
+                ...options,
+                convertUrls: e.target.checked,
+              })
+            }
+            className="accent-green-500"
+          />
+          <LinkIcon size={12} className="text-green-400" /> URLs
+        </label>
+        <label className="flex items-center gap-1.5 cursor-pointer text-slate-300 hover:text-white">
+          <input
+            type="checkbox"
+            checked={options.injectCsrf}
+            onChange={(e) =>
+              setOptions({
+                ...options,
+                injectCsrf: e.target.checked,
+              })
+            }
+            className="accent-green-500"
+          />
+          Auto CSRF
+        </label>
+        <label className="flex items-center gap-1.5 cursor-pointer text-slate-300 hover:text-white">
+          <input
+            type="checkbox"
+            checked={options.addExtends}
+            onChange={(e) =>
+              setOptions({
+                ...options,
+                addExtends: e.target.checked,
+              })
+            }
+            className="accent-green-500"
+          />
+          Extends
+        </label>
+        <label className="flex items-center gap-1.5 cursor-pointer text-slate-300 hover:text-white">
+          <input
+            type="checkbox"
+            checked={options.convertStatic}
+            onChange={(e) =>
+              setOptions({
+                ...options,
+                convertStatic: e.target.checked,
+              })
+            }
+            className="accent-green-500"
+          />
+          Static
+        </label>
+        <label className="flex items-center gap-1.5 cursor-pointer text-slate-300 hover:text-white">
+          <input
+            type="checkbox"
+            checked={options.cleanComments}
+            onChange={(e) =>
+              setOptions({
+                ...options,
+                cleanComments: e.target.checked,
+              })
+            }
+            className="accent-green-500"
+          />
+          Clean Comments
+        </label>
+      </div>
+    </>
+  );
+
+  // --- TOOLBOX (inchangée, mais passée au layout) ---
+
+  const toolbox = (
+    <Toolbox
+      loopConfig={loopConfig}
+      setLoopConfig={setLoopConfig}
+      insertLoop={insertLoop}
+      varName={varName}
+      setVarName={setVarName}
+      insertVariable={insertVariable}
+      insertTextAtSelection={insertTextAtSelection}
+    />
+  );
+
+  // --- SIDEBAR FICHIERS (réutilisable dans d'autres apps) ---
+
+  const sidebar = (
+    <FileExplorer
+      files={files}
+      activeFileId={activeFileId}
+      editingFileId={editingFileId}
+      extractionMode={extractionMode}
+      selectedForExtraction={selectedForExtraction}
+      setExtractionMode={setExtractionMode}
+      setSelectedForExtraction={setSelectedForExtraction}
+      generateBaseFromSelection={generateBaseFromSelection}
+      handleFileUpload={handleFileUpload}
+      updateFileName={updateFileName}
+      setEditingFileId={setEditingFileId}
+      handleNameKeyDown={handleNameKeyDown}
+      selectFile={selectFile}
+      removeFile={removeFile}
+      downloadFile={downloadFile}
+      downloadAll={downloadAll}
+    />
+  );
+
+  // --- RENDER FINAL VIA LAYOUT GÉNÉRIQUE ---
 
   return (
-    <div className="flex flex-1 flex-col md:flex-row overflow-hidden">
-      {/* Sidebar fichiers spécifique Gabarits */}
-      <FileExplorer
-        files={files}
-        activeFileId={activeFileId}
-        editingFileId={editingFileId}
-        extractionMode={extractionMode}
-        selectedForExtraction={selectedForExtraction}
-        setExtractionMode={setExtractionMode}
-        setSelectedForExtraction={setSelectedForExtraction}
-        generateBaseFromSelection={generateBaseFromSelection}
-        handleFileUpload={handleFileUpload}
-        updateFileName={updateFileName}
-        setEditingFileId={setEditingFileId}
-        handleNameKeyDown={handleNameKeyDown}
-        selectFile={selectFile}
-        removeFile={removeFile}
-        downloadFile={downloadFile}
-        downloadAll={downloadAll}
-      />
-
-      {/* Zone principale de l’outil Gabarits */}
-      <div className="flex-1 flex flex-col h-screen overflow-hidden">
-        {/* Header de l’outil Gabarits */}
-        <div className="bg-slate-900 border-b border-slate-800 p-3 shadow-md z-10">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2 text-xs font-semibold text-slate-300">
-              <span className="px-2 py-0.5 rounded bg-slate-800 text-emerald-400">
-                Gabarits
-              </span>
-              <span>HTML → Templates Django</span>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={handleUndo}
-                disabled={undoStack.length === 0}
-                className="text-[10px] font-bold flex items-center gap-1 px-2 py-1 rounded border border-slate-700 text-slate-300 disabled:text-slate-700 disabled:border-slate-800 hover:text-white hover:border-slate-500 transition-colors"
-              >
-                <Undo2 size={12} /> UNDO
-              </button>
-              <button
-                onClick={handleRedo}
-                disabled={redoStack.length === 0}
-                className="text-[10px] font-bold flex items-center gap-1 px-2 py-1 rounded border border-slate-700 text-slate-300 disabled:text-slate-700 disabled:border-slate-800 hover:text-white hover:border-slate-500 transition-colors"
-              >
-                <Redo2 size={12} /> REDO
-              </button>
-              <button
-                onClick={handleResetAll}
-                className="text-[10px] font-bold text-slate-500 hover:text-red-400 flex items-center gap-1"
-              >
-                <RefreshCw size={12} /> RESET
-              </button>
-              <button
-                onClick={() =>
-                  setViewMode(viewMode === 'split' ? 'diff' : 'split')
-                }
-                className={`text-[10px] font-bold px-3 py-1.5 rounded border transition-colors flex items-center gap-1.5 ${
-                  viewMode === 'diff'
-                    ? 'bg-blue-600 text-white border-blue-500'
-                    : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
-                }`}
-              >
-                {viewMode === 'split' ? (
-                  <FileDiff size={12} />
-                ) : (
-                  <Code size={12} />
-                )}
-                {viewMode === 'split' ? 'VOIR DIFF' : 'MODE ÉDITEUR'}
-              </button>
-            </div>
-          </div>
-
-          {/* Bandeau d’options Gabarits */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-3 text-xs bg-slate-950/50 p-2 rounded border border-slate-800">
-            <div className="lg:col-span-2 flex flex-col gap-1">
-              <label className="font-semibold text-slate-400">
-                Static
-              </label>
-              <input
-                type="text"
-                value={options.staticPrefix}
-                onChange={(e) =>
-                  setOptions({
-                    ...options,
-                    staticPrefix: e.target.value,
-                  })
-                }
-                className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-green-400 outline-none"
-              />
-            </div>
-            <div
-              className={`lg:col-span-3 flex flex-col gap-1 transition-opacity ${
-                !options.addExtends && 'opacity-30'
-              }`}
-            >
-              <label className="font-semibold text-slate-400">
-                Base
-              </label>
-              <input
-                type="text"
-                value={options.baseTemplateName}
-                onChange={(e) =>
-                  setOptions({
-                    ...options,
-                    baseTemplateName: e.target.value,
-                  })
-                }
-                className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-blue-400 outline-none"
-              />
-            </div>
-            <div className="lg:col-span-7 flex flex-wrap items-end gap-x-4 gap-y-2 pb-1">
-              <label className="flex items-center gap-1.5 cursor-pointer text-slate-300 hover:text-white">
-                <input
-                  type="checkbox"
-                  checked={options.convertUrls}
-                  onChange={(e) =>
-                    setOptions({
-                      ...options,
-                      convertUrls: e.target.checked,
-                    })
-                  }
-                  className="accent-green-500"
-                />
-                <LinkIcon size={12} className="text-green-400" /> URLs
-              </label>
-              <label className="flex items-center gap-1.5 cursor-pointer text-slate-300 hover:text-white">
-                <input
-                  type="checkbox"
-                  checked={options.injectCsrf}
-                  onChange={(e) =>
-                    setOptions({
-                      ...options,
-                      injectCsrf: e.target.checked,
-                    })
-                  }
-                  className="accent-green-500"
-                />
-                Auto CSRF
-              </label>
-              <label className="flex items-center gap-1.5 cursor-pointer text-slate-300 hover:text-white">
-                <input
-                  type="checkbox"
-                  checked={options.addExtends}
-                  onChange={(e) =>
-                    setOptions({
-                      ...options,
-                      addExtends: e.target.checked,
-                    })
-                  }
-                  className="accent-green-500"
-                />
-                Extends
-              </label>
-              <label className="flex items-center gap-1.5 cursor-pointer text-slate-300 hover:text-white">
-                <input
-                  type="checkbox"
-                  checked={options.convertStatic}
-                  onChange={(e) =>
-                    setOptions({
-                      ...options,
-                      convertStatic: e.target.checked,
-                    })
-                  }
-                  className="accent-green-500"
-                />
-                Static
-              </label>
-              <label className="flex items-center gap-1.5 cursor-pointer text-slate-300 hover:text-white">
-                <input
-                  type="checkbox"
-                  checked={options.cleanComments}
-                  onChange={(e) =>
-                    setOptions({
-                      ...options,
-                      cleanComments: e.target.checked,
-                    })
-                  }
-                  className="accent-green-500"
-                />
-                Clean Comments
-              </label>
-            </div>
-          </div>
-        </div>
-
-        {/* TOOLBOX (masquée en mode Diff) */}
-        {viewMode === 'split' && (
-          <Toolbox
-            loopConfig={loopConfig}
-            setLoopConfig={setLoopConfig}
-            insertLoop={insertLoop}
-            varName={varName}
-            setVarName={setVarName}
-            insertVariable={insertVariable}
-            insertTextAtSelection={insertTextAtSelection}
-          />
-        )}
-
-        {/* MAIN EDITOR / DIFF */}
-        {viewMode === 'split' ? (
-          <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 overflow-hidden bg-slate-950">
-            <div className="flex flex-col h-full border-r border-slate-800 relative">
-              <div className="absolute top-0 left-0 right-0 h-6 bg-slate-900/80 border-b border-slate-800 flex items-center justify-between px-3 z-10">
-                <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
-                  <Code size={10} /> HTML EDITABLE (INPUT)
-                </span>
-              </div>
-              <textarea
-                ref={inputRef}
-                className="flex-1 w-full bg-transparent text-slate-300 font-mono text-xs md:text-sm p-4 pt-8 outline-none resize-none custom-scrollbar focus:bg-slate-900/30"
-                placeholder="Code HTML..."
-                value={inputCode}
-                onChange={(e) => setInputCode(e.target.value)}
-                spellCheck="false"
-              />
-            </div>
-            <div className="flex flex-col h-full bg-black/20 relative">
-              <div className="absolute top-0 left-0 right-0 h-8 bg-slate-900/80 border-b border-slate-800 flex items-center justify-between px-3 z-10">
-                <span className="text-[10px] font-bold text-green-500 flex items-center gap-1">
-                  <Settings size={10} /> DJANGO RESULTAT
-                </span>
-                <button
-                  onClick={handleCopy}
-                  className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-slate-700 text-slate-300 hover:bg-slate-600"
-                >
-                  {copied ? (
-                    <CheckCircle size={10} />
-                  ) : (
-                    <Copy size={10} />
-                  )}
-                  {copied ? 'Copié !' : 'Copier'}
-                </button>
-              </div>
-              <textarea
-                className="flex-1 w-full bg-transparent text-green-400 font-mono text-xs md:text-sm p-4 pt-10 outline-none resize-none custom-scrollbar"
-                value={outputCode}
-                readOnly
-                placeholder="Résultat..."
-              />
-            </div>
-          </div>
-        ) : (
-          <DiffViewer oldCode={inputCode} newCode={outputCode} />
-        )}
-      </div>
-
-      <style>{`
-        .custom-scrollbar::-webkit-scrollbar{width:10px;height:10px}
-        .custom-scrollbar::-webkit-scrollbar-track{background:#0f172a}
-        .custom-scrollbar::-webkit-scrollbar-thumb{background:#334155;border-radius:5px;border:2px solid #0f172a}
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover{background:#475569}
-      `}</style>
-    </div>
+    <CodeToolLayout
+      sidebar={sidebar}
+      badgeLabel="Gabarits"
+      badgeClass="bg-slate-800 text-emerald-400"
+      title="HTML → Templates Django"
+      optionsBar={optionsBar}
+      toolbar={toolbox}
+      inputCode={inputCode}
+      onInputChange={setInputCode}
+      inputRef={inputRef}
+      inputPlaceholder="Code HTML..."
+      inputHeader={
+        <>
+          <Code size={10} /> HTML EDITABLE (INPUT)
+        </>
+      }
+      outputCode={outputCode}
+      outputPlaceholder="Résultat..."
+      outputHeader={
+        <>
+          <Settings size={10} /> DJANGO RESULTAT
+        </>
+      }
+      onResetAll={handleResetAll}
+      onUndo={handleUndo}
+      onRedo={handleRedo}
+      canUndo={canUndo}
+      canRedo={canRedo}
+    />
   );
 }
