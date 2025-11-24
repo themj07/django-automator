@@ -13,9 +13,13 @@
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {
+    "body-parser": "^2.2.1",
+    "express": "^5.1.0",
     "lucide-react": "^0.554.0",
+    "openai": "^6.9.1",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "react-resizable-panels": "^3.0.6"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
