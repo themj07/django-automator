@@ -37,7 +37,7 @@ export default function ModelsViewsTool() {
 
         try {
             // 1) models
-            const modelsResp = await fetch("/api/models", {
+            const modelsResp = await fetch("/pages/api/models", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ appName, prompt })
@@ -53,7 +53,7 @@ export default function ModelsViewsTool() {
             setOutputModels(modelsCode || "// Aucun models.py généré");
 
             // 2) views
-            const viewsResp = await fetch("/api/views", {
+            const viewsResp = await fetch("/pages/api/views", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ appName, parsedModels: pm, viewOptions })
