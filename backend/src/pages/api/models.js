@@ -1,0 +1,19 @@
+import { askGeminiForModels, buildModelsCode } from '../../helpers/generatorUtils.js';
+
+export default async function handler(req, res) {
+    if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
+
+    const { appName, prompt } = req.body || {};
+    if (!appName || !prompt) return res.status(400).json({ error: 'appName et prompt requis' });
+
+    try {
+        // Change the function call
+        const parsed = await askGeminiForModels(prompt);
+        const modelsCode = buildModelsCode(parsed.models);
+        return res.status(200).json({ parsedModels: parsed.models, modelsCode });
+    } catch (e) {
+        console.error(e);
+        // Include the error details in the response for better debugging
+        return res.status(500).json({ error: 'Erreur generation modèles', details: e.message });
+    }
+}
